@@ -1,0 +1,13 @@
+测试环境
+测试地址：http://120.24.197.73:8084/api/sms
+API接口标识：apiuser1
+API接口秘钥：c3a92a96d242feb3ea00d4cb43a5fba8
+短信签名ID：2
+
+
+// 服务器上使用
+"ip": "10.229.169.136",
+"port": "80",
+"api_id": "jjjj1",
+"key": "cbaabbebd6ba92b98c432a5f00165ac3",
+"s_id": "59",
