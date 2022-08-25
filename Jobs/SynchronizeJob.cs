@@ -38,7 +38,7 @@ namespace Recorder
             if (sms.Equals("0"))
             {
                 // 短信记录
-                await Task.Run(async () => 
+                await Task.Run(async () =>
                 {
                     bool result = false;
                     try
@@ -87,7 +87,7 @@ namespace Recorder
                 });
 
                 // 定时推送
-                await Task.Run(async () => 
+                await Task.Run(async () =>
                 {
                     string clock = AppSettingsHelper.ReadAppSettings("Sms", "clock");
                     // 每天早上9:00执行
@@ -160,7 +160,7 @@ namespace Recorder
                                 await _message.UpdateMessage(updateList.ToArray());
                             }
                         }
-                        else 
+                        else
                         {
                             break;
                         }
@@ -450,8 +450,9 @@ namespace Recorder
                                             DelFlag = 0,
                                             Address = item.TestPlace,
                                             TestMode = _data.TestModeByParams(item.TestType),
-                                            CopsName = item.TestPoliceSecond
-                                        };
+                                            CopsName = item.TestPoliceSecond,
+                                            UploadExternalStatus = 0
+                                    };
 
                                         TPolice? police = polices.Find(x => x.PoliceNum == item.TestPoliceNo);
                                         if (police != null)
@@ -524,31 +525,35 @@ namespace Recorder
                                 TData? data = datas.Find(x => x.Id.Equals(item.TId));
                                 if (data != null)
                                 {
-                                    if (data.UploadExternalStatus != 1)
+                                    if ((data.UploadExternalStatus is 2 or 3) && !string.IsNullOrEmpty(data.UploadExternalMsg) && (data.UploadExternalMsg.Contains("被测人信息不能为空") || data.UploadExternalMsg.Contains("执勤民警信息不能为空")))
                                     {
-                                        TPolice? police = polices.Find(x => x.PoliceNum == item.TestPoliceNo);
-                                        if (police != null)
+                                        if (data.AlcoholValueState is 3 or 4 or 5)
                                         {
-                                            data.PoliceId = police.Id;
-                                        }
-
-                                        if (!string.IsNullOrEmpty(item.SubjectName) && !string.IsNullOrEmpty(item.SubjectIdNo) && !string.IsNullOrEmpty(item.LicenseNumber))
-                                        {
-                                            TDriverInfo? driver = drivers.Find(x => item.TestTime.Equals(x.CreateTime) && item.SubjectName.Equals(x.DriverIdentificationName) && item.SubjectIdNo.Equals(x.DriverIdentificationNumber) && item.LicenseNumber.Equals(x.LicensePlateNumber));
-                                            if (driver != null)
+                                            TPolice? police = polices.Find(x => x.PoliceNum == item.TestPoliceNo);
+                                            if (police != null)
                                             {
-                                                data.DriverInfoId = driver.Id;
+                                                data.PoliceId = police.Id;
                                             }
+
+                                            if (!string.IsNullOrEmpty(item.SubjectName) && !string.IsNullOrEmpty(item.SubjectIdNo) && !string.IsNullOrEmpty(item.LicenseNumber))
+                                            {
+                                                TDriverInfo? driver = drivers.Find(x => item.TestTime.Equals(x.CreateTime) && item.SubjectName.Equals(x.DriverIdentificationName) && item.SubjectIdNo.Equals(x.DriverIdentificationNumber) && item.LicenseNumber.Equals(x.LicensePlateNumber));
+                                                if (driver != null)
+                                                {
+                                                    data.DriverInfoId = driver.Id;
+                                                }
+                                            }
+
+                                            data.ImposeMeasuresCode = item.DisposalType;
+                                            data.Address = item.TestPlace;
+                                            data.CopsName = item.TestPoliceSecond;
+
+                                            data.UploadExternalStatus = 0;
+                                            data.UploadExternalTime = null;
+                                            data.UploadExternalMsg = "";
+
+                                            pArray.Add(data);
                                         }
-
-                                        data.ImposeMeasuresCode = item.DisposalType;
-                                        data.Address = item.TestPlace;
-                                        data.CopsName = item.TestPoliceSecond;
-                                        data.UploadExternalStatus = 0;
-                                        data.UploadExternalTime = null;
-                                        data.UploadExternalMsg = "";
-
-                                        pArray.Add(data);
                                     }
                                 }
                             });
