@@ -10,6 +10,7 @@ namespace Recorder
         private readonly string licenses = AppSettingsHelper.ReadAppSettings("License", "Key");
         private readonly string synchronize = AppSettingsHelper.ReadAppSettings("OpenLock", "Synchronize");
         private readonly string sms = AppSettingsHelper.ReadAppSettings("OpenLock", "Sms");
+        private readonly string wireless = AppSettingsHelper.ReadAppSettings("OpenLock", "Wireless");
 
         private readonly SyncDeviceService _device = new();
         private readonly SyncDeptService _dept = new();
@@ -168,7 +169,7 @@ namespace Recorder
                 });
             }
 
-            // 同步数据服务
+            // 同步数据服务 OracleToMySQL
             if (synchronize.Equals("0"))
             {
                 // 部门信息
@@ -452,7 +453,7 @@ namespace Recorder
                                             TestMode = _data.TestModeByParams(item.TestType),
                                             CopsName = item.TestPoliceSecond,
                                             UploadExternalStatus = 0
-                                    };
+                                        };
 
                                         TPolice? police = polices.Find(x => x.PoliceNum == item.TestPoliceNo);
                                         if (police != null)
@@ -565,6 +566,115 @@ namespace Recorder
                             else
                             {
                                 await Console.Out.WriteLineAsync($"info：{DateTime.Now:u}  no new alcohol data update");
+                            }
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        await Console.Out.WriteLineAsync($"warning：{DateTime.Now:u}  " + ex.Message);
+                    }
+                });
+            }
+
+            // 同步数据服务 MySQLToOracle
+            if (wireless.Equals("0"))
+            {
+                // 酒检信息
+                await Task.Run(async () =>
+                {
+                    bool result = false;
+                    try
+                    {
+                        List<TData> iList = await _data.GetTDataItemByMonthAsync();
+                        // 同步校对
+                        if (iList.Count > 0)
+                        {
+                            List<TestingData> pArray = new();
+                            // 读取基础信息
+                            List<TDevice> devices = await _device.GetDeviceItemAsync();
+                            List<TPolice> polices = await _police.GetTPolicetItemAsync();
+                            List<TDriverInfo> drivers = await _driver.GetDriverInfoItemAsync();
+                            List<TestingData> testings = await _data.GetTestingDataItemAsync();
+                            List<DeviceList> devs = await _device.GetSyncDeviceAsync();
+                            // 校对同步
+                            iList.ForEach(item =>
+                            {
+                                if (item.DeviceId != 0)
+                                {
+                                    // 查找判断
+                                    TDevice? device = devices.Find(x => x.Id.Equals(item.DeviceId));
+                                    if (device != null)
+                                    {
+                                        string device_sn = device.DeviceSn;
+                                        // 查找判断
+                                        TestingData? testing = testings.Find(x => x.TestTime.Equals(item.CreateTime) && x.DeviceTestNo.Equals(Convert.ToInt32(item.RecordNum)) && x.TransDate.Equals(item.UploadTime) && x.DeviceNo.Equals(device_sn));
+                                        if (testing == null)
+                                        {
+                                            TestingData entity = new()
+                                            {
+                                                TestserialNo = Guid.NewGuid().ToByteArray(),
+                                                DeviceNo = device_sn,
+                                                TestDate = Convert.ToDateTime(Convert.ToDateTime(item.CreateTime.ToString()).ToString("d")),
+                                                TestTime = item.CreateTime,
+                                                TestType = _data.TestTypeByParams(item.TestMode),
+                                                TestClass = _data.TestClassByParams(item.TestMode, item.AlcoholValueState),
+                                                TestResult = (float)item.WineCheckValues,
+                                                TestUnit = !string.IsNullOrEmpty(item.Util) ? item.Util.ToLower() : item.Util,
+                                                TestUser = "admin",
+                                                TransDate = item.UploadTime,
+                                                DeviceTestNo = !string.IsNullOrEmpty(item.RecordNum) ? Convert.ToInt32(item.RecordNum) : 0,
+                                                ObjectionFlag = "N",
+                                                TestPoliceSecond = item.LeaderName,
+                                                TestPlace = item.Address,
+                                                LeaderPolice = item.LeaderName,
+                                                DataType = "Normal",
+                                                WirelessUploadFlag = "y",
+                                                DutyType = _data.DutyTypeByParams(item.DutyType),
+                                                TId = 1000000000 + item.Id
+                                            };
+                                            // 当事人
+                                            if (item.DriverInfoId != 0)
+                                            {
+                                                TDriverInfo? driver = drivers.Find(x => x.Id.Equals(item.DriverInfoId));
+                                                if (driver != null)
+                                                {
+                                                    entity.SubjectName = driver.DriverIdentificationName;
+                                                    entity.SubjectIdType = !string.IsNullOrEmpty(driver.DrivingCar) ? driver.DrivingCar.ToLower() : "";
+                                                    entity.SubjectIdNo = driver.DriverIdentificationNumber;
+                                                    entity.LicenseNumber = driver.LicensePlateNumber;
+                                                }
+                                            }
+                                            // 警员
+                                            if (item.PoliceId != 0)
+                                            {
+                                                TPolice? police = polices.Find(x => x.Id.Equals(item.PoliceId));
+                                                if (police != null)
+                                                {
+                                                    entity.TestPolice = police.PoliceNum;
+                                                    entity.TestPoliceNo = police.PoliceNum;
+                                                }
+                                            }
+                                            // 部门
+                                            DeviceList? deviceList = devs.Find(x => x.Instruno.Equals(device.DeviceSn));
+                                            if (deviceList != null)
+                                            {
+                                                entity.TestPoliceSta = Convert.ToInt32(deviceList.Instruaff);
+                                                entity.DutyDaduiId = deviceList.Instruaff;
+                                                entity.DutyZhongDuiId = deviceList.Instruaff;
+                                            }
+                                            pArray.Add(entity);
+                                        }
+                                    }
+                                }
+                            });
+                            if (pArray.Count > 0)
+                            {
+                                result = await _data.AddTestingData(pArray.ToArray());
+                                await Console.Out.WriteLineAsync($"info：{DateTime.Now:u} synchronize testingdata " + (result.Equals(true) ? "succ" : "fail") + "");
+                            }
+                            else
+                            {
+                                await Console.Out.WriteLineAsync($"info：{DateTime.Now:u}  no new testingdata data synchronize");
                             }
                         }
                     }

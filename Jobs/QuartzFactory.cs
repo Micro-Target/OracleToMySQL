@@ -25,7 +25,7 @@ namespace Recorder
             await _scheduler.Start();
             // 创建一个触发器
             var trigger = TriggerBuilder.Create()
-                            .WithSimpleSchedule(x => x.WithIntervalInSeconds(3600).RepeatForever()) // 每n秒执行一次
+                            .WithSimpleSchedule(x => x.WithIntervalInSeconds(600).RepeatForever()) // 每n秒执行一次 sms = 300，wireless=300 synchronize = 3600
                             .Build();
 
             // 创建任务

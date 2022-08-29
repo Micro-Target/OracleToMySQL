@@ -11,11 +11,11 @@ namespace Recorder
         /// 查询酒检信息
         /// </summary>
         /// <returns></returns>
-        public async Task<List<TestingData>> GetTestingDataItemAsync()
+        public async Task<List<TData>> GetTDataItemAsync()
         {
             try
             {
-                return await dbOracle.TestingDatas.AsNoTracking().Select(x => ItemToDTO(x)).ToListAsync();
+                return await dbMySql.Datas.ToListAsync();
             }
             catch (Exception)
             {
@@ -24,14 +24,14 @@ namespace Recorder
         }
 
         /// <summary>
-        /// 查询酒检信息
+        /// 查询本月酒检信息
         /// </summary>
         /// <returns></returns>
-        public async Task<List<TData>> GetTDataItemAsync()
+        public async Task<List<TData>> GetTDataItemByMonthAsync()
         {
             try
             {
-                return await dbMySql.Datas.ToListAsync();
+                return await dbMySql.Datas.AsNoTracking().Where(x => x.UploadTime >= DateTime.Now.AddMonths(-1) && x.UploadTime < DateTime.Now.AddMinutes(5) && x.DelFlag == 0).ToListAsync();
             }
             catch (Exception)
             {
@@ -207,6 +207,105 @@ namespace Recorder
                 _ => 5,
             };
             return test_mode;
+        }
+
+
+
+        /// <summary>
+        /// 查询酒检信息
+        /// </summary>
+        /// <returns></returns>
+        public async Task<List<TestingData>> GetTestingDataItemAsync()
+        {
+            try
+            {
+                return await dbOracle.TestingDatas.AsNoTracking().Select(x => ItemToDTO(x)).ToListAsync();
+            }
+            catch (Exception)
+            {
+                throw;
+            }
+        }
+
+
+        /// <summary>
+        /// 添加酒检信息
+        /// </summary>
+        /// <param name="datas">酒检信息</param>
+        /// <returns></returns>
+        public async Task<bool> AddTestingData(TestingData[] datas)
+        {
+            try
+            {
+                if (datas != null)
+                {
+                    dbOracle.TestingDatas.AddRange(datas);
+                    await dbOracle.SaveChangesAsync();
+                }
+                return true;
+            }
+            catch (Exception)
+            {
+                throw;
+            }
+        }
+
+        /// <summary>
+        /// 酒检值状态信息
+        /// </summary>
+        /// <param name="test_mode"></param>
+        /// <returns></returns>
+        public string TestTypeByParams(int? test_mode)
+        {
+            string test_type = test_mode switch
+            {
+                1 => "定量测试",
+                2 => "定性排查",
+                _ => "定量测试"
+            };
+            return test_type;
+        }
+
+        /// <summary>
+        /// 酒检值状态信息
+        /// </summary>
+        /// <param name="test_mode"></param>
+        /// <param name="wine_check_values"></param>
+        /// <returns></returns>
+        public string TestClassByParams(int? test_mode, int wine_check_values)
+        {
+            string test_class;
+            if (test_mode == 2 && wine_check_values > 0)
+            {
+                test_class = "有酒精";
+            }
+            else if (test_mode == 2 && wine_check_values == 0)
+            {
+                test_class = "无酒精";
+            }
+            else
+            {
+                test_class = "0";
+            }
+            return test_class;
+        }
+
+        /// <summary>
+        /// 执勤类型信息
+        /// </summary>
+        /// <param name="dutyType"></param>
+        /// <returns></returns>
+        public string DutyTypeByParams(int? dutyType)
+        {
+            string duty_type = dutyType switch
+            {
+                1=> "路面查车",
+                2=> "事故",
+                3 => "其它-乘客",
+                4 => "其它-驾驶员",
+                _ => "路面查车"
+            };
+            return duty_type;
         }
     }
 }

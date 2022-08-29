@@ -1,8 +1,8 @@
 ﻿namespace Recorder
 {
-    public partial class DeviceList
+    public class DeviceList
     {
-        public string? Instruno { get; set; } = null!;
+        public string Instruno { get; set; } = null!;
 
         public string? Instrutype { get; set; }
 

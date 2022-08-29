@@ -1,4 +1,7 @@
-﻿namespace Recorder
+﻿
+using System.ComponentModel.DataAnnotations;
+
+namespace Recorder
 {
     public class TestingData
     {
@@ -6,7 +9,9 @@
 
         public string DeviceNo { get; set; } = null!;
 
-        public DateTime TestTime { get; set; }
+        public DateTime? TestDate { get; set; }
+
+        public DateTime? TestTime { get; set; }
 
         public string TestType { get; set; } = null!;
 
@@ -15,6 +20,8 @@
         public float TestResult { get; set; }
 
         public string? TestUnit { get; set; }
+
+        public string? TestUser { get; set; }
 
         public DateTime TransDate { get; set; }
 
@@ -50,8 +57,13 @@
 
         public string? TestPoliceNo { get; set; }
 
+        [Key]
         public int TId { get; set; }
 
-        public string? DutyType { get; set; }
+        public string? DutyType { get; set; }        
+
+        public string? DutyDaduiId { get; set; }
+
+        public string? DutyZhongDuiId { get; set; }
     }
 }

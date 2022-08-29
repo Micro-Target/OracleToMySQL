@@ -5,7 +5,8 @@ namespace Recorder
     public partial class EntityOracleDBContext : DbContext
     {
         private readonly string synchronize = AppSettingsHelper.ReadAppSettings("OpenLock", "Synchronize");
-        
+        private readonly string wireless = AppSettingsHelper.ReadAppSettings("OpenLock", "Wireless");
+
         public EntityOracleDBContext()
         {
         }
@@ -32,7 +33,7 @@ namespace Recorder
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
-            if (synchronize.Equals("0"))
+            if (synchronize.Equals("0") || wireless.Equals("0"))
             {
                 modelBuilder.Entity<PoliceStation>(entity =>
                 {
@@ -60,7 +61,6 @@ namespace Recorder
                         .HasColumnName("IS_DUTY_FLAG");
 
                     entity.HasQueryFilter(e => e.IsDutyFlag != "N");
-
                 });
 
                 modelBuilder.Entity<TestPolice>(entity =>
@@ -136,7 +136,6 @@ namespace Recorder
 
                     entity.Property(e => e.Autonomy)
                         .HasColumnName("AUTONOMY");
-
                 });
 
                 modelBuilder.Entity<TestingData>(entity =>
@@ -152,6 +151,9 @@ namespace Recorder
                     entity.Property(e => e.DeviceNo)
                           .HasColumnName("DEVICENO");
 
+                    entity.Property(e => e.TestDate)
+                        .HasColumnName("TESTDATE");
+
                     entity.Property(e => e.TestTime)
                         .HasColumnName("TESTTIME");
 
@@ -166,6 +168,9 @@ namespace Recorder
 
                     entity.Property(e => e.TestUnit)
                         .HasColumnName("TESTUNIT");
+
+                    entity.Property(e => e.TestUser)
+                        .HasColumnName("TRANSUSER");
 
                     entity.Property(e => e.TransDate)
                         .HasColumnName("TRANSDATE");
@@ -220,15 +225,19 @@ namespace Recorder
 
                     entity.Property(e => e.TId)
                         .HasColumnName("T_ID");
-
+                        
                     entity.Property(e => e.DutyType)
                        .HasColumnName("DUTY_TYPE");
 
+                    entity.Property(e => e.DutyDaduiId)
+                       .HasColumnName("DUTY_DADUI_ID");
+
+                    entity.Property(e => e.DutyZhongDuiId)
+                       .HasColumnName("DUTY_ZHONGDUI_ID");
+
                     entity.HasQueryFilter(e => e.DataType == "Normal" && e.TestPoliceSta != null && e.TransDate >= DateTime.Now.AddMonths(-1) && e.TransDate < DateTime.Now.AddMinutes(5));
-
-                });
+                });   
             }
-
             OnModelCreatingPartial(modelBuilder);
         }
 
